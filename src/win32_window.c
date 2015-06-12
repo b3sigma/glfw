@@ -681,15 +681,30 @@ static int createWindow(_GLFWwindow* window,
     int xpos, ypos, fullWidth, fullHeight;
     WCHAR* wideTitle;
 
-    if (window->monitor)
+// Note: keeping the merge conflicts around until I sort out what's what.
+// The master code is newer and looks reasonable, so starting with that.
+//+++++++ HEAD
+//    if (window->monitor)
+//    {
+//=======
+    if (wndconfig->monitor)
     {
+        GLFWvidmode mode;
+//
+//+++++++ master
         // NOTE: This window placement is temporary and approximate, as the
         //       correct position and size cannot be known until the monitor
         //       video mode has been set
         _glfwPlatformGetMonitorPos(wndconfig->monitor, &xpos, &ypos);
-
-        fullWidth  = wndconfig->width;
-        fullHeight = wndconfig->height;
+//+++++++ HEAD
+//
+//        fullWidth  = wndconfig->width;
+//        fullHeight = wndconfig->height;
+//=======
+        _glfwPlatformGetVideoMode(wndconfig->monitor, &mode);
+        fullWidth  = mode.width;
+        fullHeight = mode.height;
+//+++++++ master
     }
     else
     {
