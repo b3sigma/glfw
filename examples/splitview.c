@@ -440,6 +440,24 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GL_TRUE);
+    
+    if (key == GLFW_KEY_ENTER && mods == GLFW_MOD_ALT && action == GLFW_PRESS)
+    {
+        GLFWmonitor* monitor = glfwGetWindowMonitor(window);
+        if (monitor)
+        {
+            glfwSetWindowMonitor(window, NULL, 640, 480, 0);
+        }
+        else
+        {
+            GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+            const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+            glfwSetWindowMonitor(window, monitor,
+                                  mode->width, mode->height,
+                                  GLFW_DONT_CARE);
+        }
+        do_redraw = 1;
+    }
 }
 
 

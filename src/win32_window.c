@@ -42,7 +42,7 @@
 //
 static getWindowStyle(const _GLFWwindow* window)
 {
-    DWORD style = WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
+    DWORD style = WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_VISIBLE;
 
     if (window->decorated && !window->monitor)
     {
@@ -52,7 +52,9 @@ static getWindowStyle(const _GLFWwindow* window)
             style |= WS_MAXIMIZEBOX | WS_SIZEBOX;
     }
     else
+    {
         style |= WS_POPUP;
+    }
 
     return style;
 }
@@ -561,22 +563,28 @@ static LRESULT CALLBACK windowProc(HWND hWnd, UINT uMsg,
         case WM_GETMINMAXINFO:
         {
             MINMAXINFO* mmi = (MINMAXINFO*) lParam;
-
-            if (window->win32.minwidth != GLFW_DONT_CARE &&
-                window->win32.minheight != GLFW_DONT_CARE)
+            // This message can come through before window has been set.
+            if (window)
             {
-                mmi->ptMinTrackSize.x = window->win32.minwidth;
-                mmi->ptMinTrackSize.y = window->win32.minheight;
+              if (window->win32.minwidth != GLFW_DONT_CARE &&
+                  window->win32.minheight != GLFW_DONT_CARE)
+              {
+                  mmi->ptMinTrackSize.x = window->win32.minwidth;
+                  mmi->ptMinTrackSize.y = window->win32.minheight;
+              }
+
+              if (window->win32.maxwidth != GLFW_DONT_CARE &&
+                  window->win32.maxheight != GLFW_DONT_CARE)
+              {
+                  mmi->ptMaxTrackSize.x = window->win32.maxwidth;
+                  mmi->ptMaxTrackSize.y = window->win32.maxheight;
+              }
+              
+              // handled it
+              return 0;
             }
 
-            if (window->win32.maxwidth != GLFW_DONT_CARE &&
-                window->win32.maxheight != GLFW_DONT_CARE)
-            {
-                mmi->ptMaxTrackSize.x = window->win32.maxwidth;
-                mmi->ptMaxTrackSize.y = window->win32.maxheight;
-            }
-
-            return 0;
+            break;
         }
 
         case WM_PAINT:
@@ -681,30 +689,18 @@ static int createWindow(_GLFWwindow* window,
     int xpos, ypos, fullWidth, fullHeight;
     WCHAR* wideTitle;
 
-// Note: keeping the merge conflicts around until I sort out what's what.
-// The master code is newer and looks reasonable, so starting with that.
-//+++++++ HEAD
-//    if (window->monitor)
-//    {
-//=======
     if (wndconfig->monitor)
     {
         GLFWvidmode mode;
-//
-//+++++++ master
+
         // NOTE: This window placement is temporary and approximate, as the
         //       correct position and size cannot be known until the monitor
         //       video mode has been set
         _glfwPlatformGetMonitorPos(wndconfig->monitor, &xpos, &ypos);
-//+++++++ HEAD
-//
-//        fullWidth  = wndconfig->width;
-//        fullHeight = wndconfig->height;
-//=======
+
         _glfwPlatformGetVideoMode(wndconfig->monitor, &mode);
         fullWidth  = mode.width;
         fullHeight = mode.height;
-//+++++++ master
     }
     else
     {
@@ -1072,18 +1068,20 @@ void _glfwPlatformSetWindowMonitor(_GLFWwindow* window, _GLFWmonitor* monitor,
         _glfwPlatformGetVideoMode(window->monitor, &mode);
         _glfwPlatformGetMonitorPos(window->monitor, &xpos, &ypos);
 
+        UINT flags = SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED;
         SetWindowPos(window->win32.handle, HWND_TOPMOST,
                      xpos, ypos, mode.width, mode.height,
-                     SWP_FRAMECHANGED);
+                     flags);
     }
     else
     {
         int fullWidth, fullHeight;
         getFullWindowSize(window, width, height, &fullWidth, &fullHeight);
 
+        UINT flags = SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED;
         SetWindowPos(window->win32.handle, HWND_TOPMOST,
                      0, 0, fullWidth, fullHeight,
-                     SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED);
+                     flags);
     }
 }
 
